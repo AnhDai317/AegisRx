@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedReminder SDG3</title>
+    <!-- Google Fonts: Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="glass-header">
+            <div class="logo">
+                <i class="ph-fill ph-pill"></i>
+                <h1>MedReminder</h1>
+            </div>
+            <p class="subtitle">Premium Enterprise Medication Search</p>
+        </header>
+
+        <main class="content">
+            <div class="search-container glass-card">
+                <div class="input-wrapper">
+                    <i class="ph ph-magnifying-glass search-icon"></i>
+                    <input type="text" id="searchInput" placeholder="Search FDA database (e.g. Tylenol, Aspirin)..." autocomplete="off" />
+                    <div id="loadingSpinner" class="spinner hidden"><i class="ph ph-spinner-gap"></i></div>
+                </div>
+            </div>
+
+            <div class="results-container">
+                <h2 class="results-title hidden" id="resultsTitle">Search Results</h2>
+                <div id="resultsList" class="results-list">
+                    <!-- Results will be injected here -->
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="js/site.js"></script>
+</body>
+</html>
