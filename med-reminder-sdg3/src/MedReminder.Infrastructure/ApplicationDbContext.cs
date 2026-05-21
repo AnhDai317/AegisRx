@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using MedReminder.Core.Entities;
 
@@ -12,6 +15,37 @@ public class ApplicationDbContext : DbContext
     {
     }
 
+    public override int SaveChanges()
+    {
+        UpdateAuditFields();
+        return base.SaveChanges();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        UpdateAuditFields();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void UpdateAuditFields()
+    {
+        var entries = ChangeTracker.Entries<IAuditableEntity>();
+
+        foreach (var entry in entries)
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Entity.CreatedAt = DateTimeOffset.UtcNow;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAt = DateTimeOffset.UtcNow;
+                // Ensure CreatedAt is not modified
+                entry.Property(nameof(IAuditableEntity.CreatedAt)).IsModified = false;
+            }
+        }
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -21,7 +55,6 @@ public class ApplicationDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).HasMaxLength(1000);
-            // Optional: Index on Name if searches are frequent
             entity.HasIndex(e => e.Name);
         });
 
@@ -30,8 +63,12 @@ public class ApplicationDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Frequency)
                   .IsRequired()
-                  .HasConversion<string>() // Store Enum as string in DB for readability
+                  .HasConversion<string>()
                   .HasMaxLength(50);
+            
+            entity.Property(e => e.TimezoneId)
+                  .IsRequired()
+                  .HasMaxLength(100);
                   
             entity.HasOne(d => d.Medication)
                   .WithMany()

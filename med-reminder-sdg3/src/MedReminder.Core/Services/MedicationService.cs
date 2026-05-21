@@ -24,9 +24,10 @@ public class MedicationService
         if (newReminder == null) throw new ArgumentNullException(nameof(newReminder));
         if (existingRemindersQuery == null) throw new ArgumentNullException(nameof(existingRemindersQuery));
 
-        // Basic check for exact same time and frequency at the DB level
+        // Simplified robust check: Block if TimeOfDay overlaps regardless of Frequency to prevent accidental multi-dosing.
+        // Also considers TimezoneId for cross-timezone overlap accuracy if implemented properly in the DB (here we enforce identical timezone check for basic conflict).
         return existingRemindersQuery.Any(r => 
-            r.TimeOfDay == newReminder.TimeOfDay && 
-            r.Frequency == newReminder.Frequency);
+            r.TimeOfDay == newReminder.TimeOfDay &&
+            r.TimezoneId == newReminder.TimezoneId);
     }
 }

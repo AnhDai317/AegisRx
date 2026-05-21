@@ -2,15 +2,16 @@ using System;
 
 namespace MedReminder.Core.Entities;
 
-public class Reminder
+public class Reminder : IAuditableEntity
 {
     public int Id { get; set; }
     public int MedicationId { get; set; }
     public TimeSpan TimeOfDay { get; set; }
+    public string TimezoneId { get; set; } = "UTC"; // IANA timezone string
     public FrequencyType Frequency { get; set; }
     
     // Tracking properties
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
     
     public Medication? Medication { get; set; }
