@@ -1,3 +1,5 @@
+using System;
+
 namespace MedReminder.Core.Entities;
 
 public class Reminder
@@ -5,6 +7,11 @@ public class Reminder
     public int Id { get; set; }
     public int MedicationId { get; set; }
     public TimeSpan TimeOfDay { get; set; }
-    public string Frequency { get; set; } = string.Empty; // e.g. "Daily", "EveryOtherDay"
+    public FrequencyType Frequency { get; set; }
+    
+    // Tracking properties
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? UpdatedAt { get; set; }
+    
     public Medication? Medication { get; set; }
 }
