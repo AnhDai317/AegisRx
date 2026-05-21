@@ -3,45 +3,63 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using MedReminder.Core.Entities;
+using MedReminder.Core.Services;
 
 namespace MedReminder.Infrastructure;
 
 public class ApplicationDbContext : DbContext
 {
+    private readonly ICurrentUserService _currentUserService;
+
     public DbSet<Medication> Medications { get; set; } = null!;
     public DbSet<Reminder> Reminders { get; set; } = null!;
     
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ICurrentUserService currentUserService) : base(options)
     {
+        _currentUserService = currentUserService;
     }
 
     public override int SaveChanges()
     {
-        UpdateAuditFields();
+        ApplyConcepts();
         return base.SaveChanges();
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        UpdateAuditFields();
+        ApplyConcepts();
         return base.SaveChangesAsync(cancellationToken);
     }
 
-    private void UpdateAuditFields()
+    private void ApplyConcepts()
     {
-        var entries = ChangeTracker.Entries<IAuditableEntity>();
+        var entries = ChangeTracker.Entries();
 
         foreach (var entry in entries)
         {
-            if (entry.State == EntityState.Added)
+            if (entry.Entity is IAuditableEntity auditableEntity)
             {
-                entry.Entity.CreatedAt = DateTimeOffset.UtcNow;
+                if (entry.State == EntityState.Added)
+                {
+                    auditableEntity.CreatedAt = DateTimeOffset.UtcNow;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    auditableEntity.UpdatedAt = DateTimeOffset.UtcNow;
+                    entry.Property(nameof(IAuditableEntity.CreatedAt)).IsModified = false;
+                }
             }
-            else if (entry.State == EntityState.Modified)
+
+            if (entry.Entity is ITenantEntity tenantEntity && entry.State == EntityState.Added)
             {
-                entry.Entity.UpdatedAt = DateTimeOffset.UtcNow;
-                // Ensure CreatedAt is not modified
-                entry.Property(nameof(IAuditableEntity.CreatedAt)).IsModified = false;
+                tenantEntity.UserId = _currentUserService.UserId;
+            }
+
+            if (entry.Entity is ISoftDelete softDeleteEntity && entry.State == EntityState.Deleted)
+            {
+                entry.State = EntityState.Modified;
+                softDeleteEntity.IsDeleted = true;
+                softDeleteEntity.DeletedAt = DateTimeOffset.UtcNow;
             }
         }
     }
@@ -49,6 +67,10 @@ public class ApplicationDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Global Query Filters for Soft Delete & Multi-Tenant
+        modelBuilder.Entity<Medication>().HasQueryFilter(e => !e.IsDeleted && e.UserId == _currentUserService.UserId);
+        modelBuilder.Entity<Reminder>().HasQueryFilter(e => !e.IsDeleted && e.UserId == _currentUserService.UserId);
 
         modelBuilder.Entity<Medication>(entity =>
         {
